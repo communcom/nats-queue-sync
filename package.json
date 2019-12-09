@@ -1,0 +1,19 @@
+{
+  "name": "nats-queue-sync",
+  "version": "0.1.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-nats-streaming": "^0.2.6"
+  },
+  "devDependencies": {
+    "prettier": "^1.19.1"
+  }
+}

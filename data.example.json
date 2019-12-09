@@ -1,0 +1,8 @@
+{
+  "nodeFrom": "nats://user:pwd@some-address:4222",
+  "nodeTo": "nats://user:pwd@some-address-2:4222",
+  "blockSubscribe": {
+    "lastBlockNum": 3103108,
+    "lastBlockSequence": 25871652
+  }
+}
