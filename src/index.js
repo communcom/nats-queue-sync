@@ -32,14 +32,14 @@ async function run(stanFrom, stan) {
         throw new Error('Invalid block');
     }
 
-    console.log('block:', cutBlock(block));
+    console.log('Block:', cutBlock(block));
 
     const irrBlock = await findLastIrreversibleBlockBefore(
         stanFrom,
         blockSubscribe.lastBlockSequence
     );
 
-    console.log('irreversible block:', cutBlock(irrBlock));
+    console.log('Irreversible block:', cutBlock(irrBlock));
 
     stanFrom.close();
 

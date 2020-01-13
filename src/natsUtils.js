@@ -56,7 +56,7 @@ function getBlockAtSeq(stan, seq) {
                     const block = getBlock(msg);
 
                     if (block.msg_type !== 'AcceptBlock') {
-                        throw new Error('Seq mismatched');
+                        throw new Error('Not AcceptBlock');
                     }
 
                     resolve(block);
@@ -66,25 +66,27 @@ function getBlockAtSeq(stan, seq) {
     });
 }
 
-async function findBlockSeq(stan, block) {
+async function findBlockSeq(stan, block, options) {
     const lastSeq = await getLastSequence(stan);
 
-    return await seekBlock(stan, 1, lastSeq, block);
+    return await seekBlock(stan, 1, lastSeq, block, options);
 }
 
-async function seekBlock(stan, from, before, findBlock) {
+async function seekBlock(stan, from, before, findBlock, options = {}) {
+    const { compareByBlockNum = false, messageType = 'CommitBlock' } = options;
+
     const width = before - from;
 
     console.log(`SEEK: [${from}, ${before}) width: ${width}`);
 
     if (width < 100) {
-        return await findInRange(
-            stan,
-            from,
-            before,
-            ['CommitBlock'],
-            block => block.id === findBlock.id
-        );
+        return await findInRange(stan, from, before, [messageType], block => {
+            if (compareByBlockNum) {
+                return block.block_num === findBlock.block_num;
+            }
+
+            return block.id === findBlock.id;
+        });
     } else {
         const halfSeq = Math.floor(from + width / 2);
 
@@ -92,12 +94,19 @@ async function seekBlock(stan, from, before, findBlock) {
         let findInRightPart = false;
         let blockFound = null;
 
-        await findInRange(stan, halfSeq, before, ['CommitBlock'], block => {
+        await findInRange(stan, halfSeq, before, [messageType], block => {
             const blockNum = block.block_num;
 
-            if (block.id === findBlock.id) {
-                blockFound = block;
-                return true;
+            if (compareByBlockNum) {
+                if (block.block_num === findBlock.block_num) {
+                    blockFound = block;
+                    return true;
+                }
+            } else {
+                if (block.id === findBlock.id) {
+                    blockFound = block;
+                    return true;
+                }
             }
 
             if (blockNum > findBlock.block_num) {
@@ -114,9 +123,9 @@ async function seekBlock(stan, from, before, findBlock) {
         }
 
         if (findInLeftPart) {
-            return await seekBlock(stan, from, halfSeq, findBlock);
+            return await seekBlock(stan, from, halfSeq, findBlock, options);
         } else if (findInRightPart) {
-            return await seekBlock(stan, halfSeq, before, findBlock);
+            return await seekBlock(stan, halfSeq, before, findBlock, options);
         }
 
         throw new Error('Invariant');
