@@ -19,19 +19,13 @@ function getLastSequence(stan) {
     return new Promise((resolve, reject) => {
         const options = stan.subscriptionOptions();
         options.setStartWithLastReceived();
-        options.setMaxInFlight(10);
+        options.setMaxInFlight(1);
 
         const subscription = stan.subscribe('Blocks', options);
 
-        let seq;
-
         subscription.on('message', msg => {
-            seq = msg.getSequence();
             subscription.unsubscribe();
-        });
-
-        subscription.on('unsubscribed', () => {
-            resolve(seq);
+            resolve(msg.getSequence());
         });
     });
 }
@@ -139,11 +133,17 @@ async function findInRange(stan, from, before, actions, callback) {
         options.setMaxInFlight(10);
 
         const subscription = stan.subscribe('Blocks', options);
+        let unsubscribed = false;
 
         subscription.on('message', msg => {
+            if (unsubscribed) {
+                return;
+            }
+
             const block = getBlock(msg);
 
             if (block.sequence >= before) {
+                unsubscribed = true;
                 subscription.unsubscribe();
                 reject(new Error('Range is end'));
                 return;
@@ -151,6 +151,7 @@ async function findInRange(stan, from, before, actions, callback) {
 
             if (actions.includes(block.msg_type)) {
                 if (callback(block)) {
+                    unsubscribed = true;
                     subscription.unsubscribe();
                     resolve(block);
                 }
@@ -198,13 +199,19 @@ async function find(stan, beforeSeq, predicate) {
             let lastBlockCommit = null;
 
             const subscription = stan.subscribe('Blocks', options);
+            let unsubscribed = false;
 
             subscription.on('message', msg => {
+                if (unsubscribed) {
+                    return;
+                }
+
                 const seq = msg.getSequence();
                 const data = JSON.parse(msg.getData());
                 data.sequence = seq;
 
                 if (seq >= end) {
+                    unsubscribed = true;
                     subscription.unsubscribe();
                     resolve(lastBlockCommit);
                     return;
