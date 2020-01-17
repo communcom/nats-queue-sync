@@ -71,7 +71,7 @@ async function seekBlock(stan, from, before, findBlock, options = {}) {
 
     const width = before - from;
 
-    console.log(`SEEK: [${from}, ${before}) width: ${width}`);
+    // console.log(`SEEK: [${from}, ${before}) width: ${width}`);
 
     if (width < 100) {
         return await findInRange(stan, from, before, [messageType], block => {
